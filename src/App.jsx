@@ -1,11 +1,33 @@
 import { useState } from "react";
 import Input from "./components/Input";
 import Message from "./components/Message";
+
+function TypingIndicator() {
+  return (
+    <div className="flex w-full mb-4 justify-start">
+      <div className="bg-transparent px-4 py-3 flex gap-1.5 items-center h-8 mt-1">
+        <div
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+          style={{ animationDelay: "0ms" }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+          style={{ animationDelay: "150ms" }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+          style={{ animationDelay: "300ms" }}
+        ></div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [chatHistory, setChatHistory] = useState([
     { role: "bot", text: "Olá como posso te ajudar hoje?" },
   ]);
-  // const [fileHistory, setfileHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const API_URL = "http://localhost:8000";
 
@@ -22,7 +44,7 @@ function App() {
       if (response.ok) {
         console.log("Tudo certo");
       } else {
-        console.log(`Erro: ${JSON.stringify(data.detail)} `);
+        console.log(`Erro dentro de try: ${JSON.stringify(data.detail)} `);
       }
     } catch (e) {
       console.error(`Erro: ${e}`);
@@ -56,6 +78,8 @@ function App() {
     const newUserMsg = { role: "user", text: userText };
     setChatHistory((prev) => [...prev, newUserMsg]);
 
+    setIsLoading(true);
+
     if (selectedFiles.length > 0) {
       const formData = new FormData();
       for (let i = 0; i < selectedFiles.length; i++) {
@@ -63,15 +87,15 @@ function App() {
       }
       console.log("enviando arquivos");
 
-      treinarAPI(formData);
+      await treinarAPI(formData);
     }
 
     const reposta = await respostaAPI(userText);
-    //conectar com a api
-    setTimeout(() => {
-      const botReply = { role: "bot", text: `${reposta}` };
-      setChatHistory((prev) => [...prev, botReply]);
-    }, 1000);
+
+    setIsLoading(false);
+
+    const botReply = { role: "bot", text: `${reposta}` };
+    setChatHistory((prev) => [...prev, botReply]);
   };
 
   return (
@@ -80,6 +104,8 @@ function App() {
         {chatHistory.map((msg, index) => (
           <Message key={index} role={msg.role} text={msg.text} />
         ))}
+
+        {isLoading && <TypingIndicator />}
       </div>
 
       <div className="w-full p-4 pb-8 bg-transparent shadow-lg shadow-olive-500">

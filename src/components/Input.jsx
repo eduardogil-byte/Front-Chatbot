@@ -3,8 +3,14 @@ import { useRef, useState } from "react";
 function Input({ onSendMessage }) {
   const [input, setInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const textareaRef = useRef(null);
+
+  const processFiles = (filesList) => {
+    const filesArray = Array.from(filesList);
+    setSelectedFiles((prev) => [...prev, ...filesArray]);
+  };
 
   const handleSend = () => {
     if (input.trim()) {
@@ -22,15 +28,32 @@ function Input({ onSendMessage }) {
 
   const handleFileChange = (e) => {
     if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
+      processFiles(e.target.files);
+    }
+  };
 
-      setSelectedFiles((prev) => [...prev, ...filesArray]);
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
     }
   };
 
   const removeFile = (indexToRemove) => {
     setSelectedFiles((prev) =>
-      prev.filter((_, index) => index !== indexToRemove)
+      prev.filter((_, index) => index !== indexToRemove),
     );
   };
 
@@ -51,7 +74,19 @@ function Input({ onSendMessage }) {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-3xl mx-auto bg-[#1e1e1e] rounded-3xl pb-5 shadow-lg">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`flex flex-col w-full max-w-3xl mx-auto rounded-3xl pb-5 shadow-lg transition-all duration-200 border-2
+        ${
+          isDragging
+            ? "bg-[@2a2a2a] border-blue-500 scale-[1.02]"
+            : "bg-[#1e1e1e] border-transparent"
+        }
+        
+        `}
+    >
       {selectedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 py-2">
           {selectedFiles.map((file, index) => (
