@@ -3,7 +3,6 @@ import Input from "./components/Input";
 import Message from "./components/Message";
 import TypingIndicator from "./components/TypingIndicator";
 import Sidebar from "./components/Sidebar";
-
 function App() {
   const [chatHistory, setChatHistory] = useState([
     { role: "bot", text: "Olá como posso te ajudar hoje?" },
@@ -11,8 +10,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [arquivosDisponiveis, setArquivosDisponiveis] = useState(["Todos"]);
+  const [arquivoSelecionado, setArquivoSelecionado] = useState(() => {
+    return localStorage.getItem("ultimoPdfConsultado") || "Todos";
+  });
 
-  const API_URL = "http://localhost:8000";
+  const API_URL = "https://api-chatbot-oebg.onrender.com";
+
+  useEffect(() => {
+    localStorage.setItem("ultimoPdfConsultado", arquivoSelecionado);
+  }, [arquivoSelecionado]);
 
   const excluirArquivoNoBanco = async (nomeArquivo) => {
     if (
@@ -54,6 +60,12 @@ function App() {
   useEffect(() => {
     carregarArquivos();
   }, []);
+
+  useEffect(() => {
+    if (!arquivosDisponiveis.includes(arquivoSelecionado)) {
+      setArquivoSelecionado("Todos");
+    }
+  }, [arquivosDisponiveis, arquivoSelecionado]);
 
   const handleTreinarPelaSidebar = async (files) => {
     const formData = new FormData();
@@ -112,11 +124,13 @@ function App() {
     }
   };
 
-  const addNewMessage = async (userText, selectedFiles, arquivoSelecionado) => {
+  const addNewMessage = async (userText, selectedFiles) => {
     const newUserMsg = { role: "user", text: userText };
     setChatHistory((prev) => [...prev, newUserMsg]);
 
     setIsLoading(true);
+
+    let arquivoAlvoPergunta = arquivoSelecionado;
 
     if (selectedFiles.length > 0) {
       const formData = new FormData();
@@ -126,9 +140,13 @@ function App() {
       console.log("enviando arquivos");
 
       await treinarAPI(formData);
+      await carregarArquivos();
+
+      arquivoAlvoPergunta = selectedFiles[0].name;
+      setArquivoSelecionado(arquivoAlvoPergunta);
     }
 
-    const reposta = await respostaAPI(userText, arquivoSelecionado);
+    const reposta = await respostaAPI(userText, arquivoAlvoPergunta);
 
     setIsLoading(false);
 
@@ -138,12 +156,16 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen w-full  bg-[#131314] font-sans">
-      <button
-        onClick={() => setIsSidebarOpen(true)}
-        className="fixed top-5 left-4 z-30 p-2 bg-[#212121] hover:bg-[#303030] roudned-lg text-white transition-colors"
-      >
-        ☰
-      </button>
+      <header className="flex items-center gap-2.5 px-4 py-3 bg-[#131314] border-b border-[#303030] w-full z-10 shrink-0">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 text-sm bg-[#212121] hover:bg-[#303030] roudned-lg text-white transition-colors"
+          title="Mostrar todos os arquivos"
+        >
+          ☰ Arquivos
+        </button>
+        <h1 className="text-white">Consultando em {arquivoSelecionado}</h1>
+      </header>
 
       <Sidebar
         isOpen={isSidebarOpen}
@@ -152,6 +174,7 @@ function App() {
         onTreinarNovos={handleTreinarPelaSidebar}
         onExcluirNoBanco={excluirArquivoNoBanco}
         isLoading={isLoading}
+        API_URL={API_URL}
       />
 
       <div className="flex-1 overflow-y-auto p-4 w-full max-w-4xl mx-auto flex flex-col">
@@ -162,13 +185,14 @@ function App() {
         {isLoading && <TypingIndicator />}
       </div>
 
-      <div className="w-full p-4 pb-8 bg-transparent shadow-lg shadow-olive-500">
+      <div className="w-full p-4 pb-7 bg-transparent shadow-lg shadow-olive-500">
         <Input
           onSendMessage={addNewMessage}
           arquivosDisponiveis={arquivosDisponiveis}
-          setArquivosDisponiveis={setArquivosDisponiveis}
+          arquivoSelecionado={arquivoSelecionado}
+          setArquivoSelecionado={setArquivoSelecionado}
         />
-        <p className="text-center text-xs text-gray-500 mt-3">
+        <p className="text-center text-xs text-gray-400 mt-3">
           O Gemini pode apresentar informações imprecisas. Considere verificar
           as informações importantes. Não coloque nenhum dado sensível.
         </p>

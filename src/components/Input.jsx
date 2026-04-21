@@ -1,14 +1,17 @@
 import { useRef, useState } from "react";
 
-function Input({ onSendMessage, arquivosDisponiveis }) {
+function Input({
+  onSendMessage,
+  arquivosDisponiveis,
+  arquivoSelecionado,
+  setArquivoSelecionado,
+}) {
   const [input, setInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const [arquivoSelecionado, setArquivoSelecionado] = useState("Todos");
-
   const textareaRef = useRef(null);
-  const API_URL = "http://localhost:8000";
+  const API_URL = "https://api-chatbot-oebg.onrender.com";
 
   const processFiles = (filesList) => {
     const filesArray = Array.from(filesList);
@@ -18,7 +21,7 @@ function Input({ onSendMessage, arquivosDisponiveis }) {
   const handleSend = () => {
     if (input.trim()) {
       console.log(selectedFiles.length);
-      onSendMessage(input, selectedFiles, arquivoSelecionado);
+      onSendMessage(input, selectedFiles);
 
       setInput("");
       setSelectedFiles([]);
@@ -81,7 +84,7 @@ function Input({ onSendMessage, arquivosDisponiveis }) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`flex flex-col w-full max-w-3xl mx-auto rounded-3xl pb-5 shadow-lg transition-all duration-200 border-2
+      className={`flex flex-col w-full max-w-3xl mx-auto rounded-4xl pb-5 shadow-lg transition-all duration-200 border-2
         ${
           isDragging
             ? "bg-[#2a2a2a] border-blue-500 scale-[1.02]"
@@ -121,7 +124,7 @@ function Input({ onSendMessage, arquivosDisponiveis }) {
         <textarea
           ref={textareaRef}
           value={input}
-          placeholder="Pergunte algo"
+          placeholder="Pergunte algo..."
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           rows={1}
