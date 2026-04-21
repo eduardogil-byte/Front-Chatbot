@@ -1,11 +1,14 @@
 import { useRef, useState } from "react";
 
-function Input({ onSendMessage }) {
+function Input({ onSendMessage, arquivosDisponiveis }) {
   const [input, setInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
+  const [arquivoSelecionado, setArquivoSelecionado] = useState("Todos");
+
   const textareaRef = useRef(null);
+  const API_URL = "http://localhost:8000";
 
   const processFiles = (filesList) => {
     const filesArray = Array.from(filesList);
@@ -15,7 +18,7 @@ function Input({ onSendMessage }) {
   const handleSend = () => {
     if (input.trim()) {
       console.log(selectedFiles.length);
-      onSendMessage(input, selectedFiles);
+      onSendMessage(input, selectedFiles, arquivoSelecionado);
 
       setInput("");
       setSelectedFiles([]);
@@ -81,7 +84,7 @@ function Input({ onSendMessage }) {
       className={`flex flex-col w-full max-w-3xl mx-auto rounded-3xl pb-5 shadow-lg transition-all duration-200 border-2
         ${
           isDragging
-            ? "bg-[@2a2a2a] border-blue-500 scale-[1.02]"
+            ? "bg-[#2a2a2a] border-blue-500 scale-[1.02]"
             : "bg-[#1e1e1e] border-transparent"
         }
         
@@ -127,21 +130,38 @@ function Input({ onSendMessage }) {
       </div>
 
       <div className="flex items-center justify-between px-3 mt-1">
-        <div>
-          <label
-            htmlFor="file-upload"
-            className="text-xs text-gray-400 hover:text-gray-200 cursor-pointer flex items-center transition-colors px-1"
-          >
-            📎 Adicionar arquivo
-          </label>
-          <input
-            type="file"
-            id="file-upload"
-            multiple
-            accept=".pdf"
-            className="hidden"
-            onChange={handleFileChange}
-          />
+        <div className="flex items-center gap-4">
+          <div>
+            <label
+              htmlFor="file-upload"
+              className="text-xs text-gray-400 hover:text-gray-200 cursor-pointer flex items-center transition-colors px-1"
+            >
+              📎 Adicionar arquivo
+            </label>
+            <input
+              type="file"
+              id="file-upload"
+              multiple
+              accept=".pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 border-l border-[#404040] pl-4">
+            <label className="text-xs text-gray-400">Consultar em:</label>
+            <select
+              value={arquivoSelecionado}
+              onChange={(e) => setArquivoSelecionado(e.target.value)}
+              className="bg-[#303030] text-gray-200 text-xs px-2 py-1.5 rounded-lg border border-[#404040] outline-none hover:border-gray-400 focus:border-blue-500 cursor-pointer transition-colors max-w-[150px] truncate"
+            >
+              {arquivosDisponiveis.map((nome, index) => (
+                <option key={index} value={nome}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
