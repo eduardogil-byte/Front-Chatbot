@@ -13,6 +13,16 @@ function App() {
   const [arquivoSelecionado, setArquivoSelecionado] = useState(() => {
     return localStorage.getItem("ultimoPdfConsultado") || "Todos";
   });
+  const sugestoesPerguntas = [
+    "Qual é o prazo de inscrição?",
+    "Quais documentos são necessários?",
+    "Quem pode participar?",
+    "Quando sai o resultado?",
+    "Existe taxa de inscrição?",
+    "Como faço a inscrição?",
+    "Como posso entrar com recurso?",
+    "Onde vejo a classificação final?",
+  ];
 
   const API_URL = "https://api-chatbot-oebg.onrender.com";
 
@@ -179,7 +189,23 @@ function App() {
 
       <div className="flex-1 overflow-y-auto p-4 w-full max-w-4xl mx-auto flex flex-col">
         {chatHistory.map((msg, index) => (
-          <Message key={index} role={msg.role} text={msg.text} />
+          <div key={index}>
+            <Message role={msg.role} text={msg.text} />
+
+            {index === 0 && msg.role === "bot" && chatHistory.length === 1 && (
+              <div className="flex flex-wrap gap-2 -mt-2 mb-4 ml-2">
+                {sugestoesPerguntas.slice(0, 4).map((sugestoes, i) => (
+                  <button
+                    key={i}
+                    onClick={() => addNewMessage(sugestoes, [])}
+                    className="px-3 py-2 rounded-full bg-[#242424] text-gray-200 text-sm hover:bg-[#303030] border border-[#333] transition-colors"
+                  >
+                    {sugestoes}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
 
         {isLoading && <TypingIndicator />}
@@ -191,6 +217,7 @@ function App() {
           arquivosDisponiveis={arquivosDisponiveis}
           arquivoSelecionado={arquivoSelecionado}
           setArquivoSelecionado={setArquivoSelecionado}
+          sugestoesPerguntas={sugestoesPerguntas}
         />
         <p className="text-center text-xs text-gray-400 mt-3">
           O Gemini pode apresentar informações imprecisas. Considere verificar

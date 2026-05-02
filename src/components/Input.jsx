@@ -5,13 +5,15 @@ function Input({
   arquivosDisponiveis,
   arquivoSelecionado,
   setArquivoSelecionado,
+  sugestoesPerguntas,
 }) {
   const [input, setInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
 
   const textareaRef = useRef(null);
-  const API_URL = "https://api-chatbot-oebg.onrender.com";
+  const inputVazio = input.trim() === "";
 
   const processFiles = (filesList) => {
     const filesArray = Array.from(filesList);
@@ -64,7 +66,13 @@ function Input({
   };
 
   const handleChange = (e) => {
-    setInput(e.target.value);
+    const novoValor = e.target.value;
+
+    setInput(novoValor);
+
+    if (novoValor.trim() !== "") {
+      setMostrarSugestoes(false);
+    }
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -79,12 +87,25 @@ function Input({
     }
   };
 
+  const escolherSugestao = (sugestao) => {
+    setInput(sugestao);
+    setMostrarSugestoes(false);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+    }, 0);
+  };
+
   return (
     <div
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`flex flex-col w-full max-w-3xl mx-auto rounded-4xl pb-5 shadow-lg transition-all duration-200 border-2
+      className={`relative flex flex-col w-full max-w-3xl mx-auto rounded-4xl pb-5 shadow-lg transition-all duration-200 border-2
         ${
           isDragging
             ? "bg-[#2a2a2a] border-blue-500 scale-[1.02]"
@@ -117,6 +138,37 @@ function Input({
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {mostrarSugestoes && inputVazio && (
+        <div className="absolute bottom-18 right-3 w-80 bg-[#242424] border border-[#3a3a3a] rounded-2xl shadow-2xl p-3 z-50">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-gray-300 font-medium">
+              Sugestões de perguntas
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setMostrarSugestoes(false)}
+              className="text-gray-400 hover:text-white text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {sugestoesPerguntas.map((sugestao, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => escolherSugestao(sugestao)}
+                className="text-left px-3 py-2 rounded-xl text-sm text-gray-200 hover:bg-[#333333] transition-colors"
+              >
+                {sugestao}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -167,12 +219,23 @@ function Input({
           </div>
         </div>
 
-        <button
-          onClick={handleSend}
-          className="bg-[#303030] hover:bg-[#404040] text-gray-200 px-4 py-2 rounded-full transition-colors text-sm font-medium"
-        >
-          Enviar
-        </button>
+        <div className="flex items-center gap-2">
+          {inputVazio && (
+            <button
+              type="button"
+              onClick={() => setMostrarSugestoes((prev) => !prev)}
+              className="bg-[#303030] hover:bg-[#404040] text-gray-200 px-4 py-2 rounded-full transition-colors text-sm font-medium"
+            >
+              Sugestões
+            </button>
+          )}
+          <button
+            onClick={handleSend}
+            className="bg-[#303030] hover:bg-[#404040] text-gray-200 px-4 py-2 rounded-full transition-colors text-sm font-medium"
+          >
+            Enviar
+          </button>
+        </div>
       </div>
     </div>
   );
