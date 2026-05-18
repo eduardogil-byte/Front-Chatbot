@@ -6,6 +6,7 @@ function Input({
   arquivoSelecionado,
   setArquivoSelecionado,
   sugestoesPerguntas,
+  isLoading,
 }) {
   const [input, setInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -21,6 +22,8 @@ function Input({
   };
 
   const handleSend = () => {
+    if (isLoading) return;
+
     if (input.trim()) {
       console.log(selectedFiles.length);
       onSendMessage(input, selectedFiles);
@@ -83,6 +86,9 @@ function Input({
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+
+      if (isLoading) return;
+
       handleSend();
     }
   };
@@ -231,9 +237,13 @@ function Input({
           )}
           <button
             onClick={handleSend}
-            className="bg-[#303030] hover:bg-[#404040] text-gray-200 px-4 py-2 rounded-full transition-colors text-sm font-medium"
+            className={`px-4 py-2 rounded-full transition-colors text-sm font-medium ${
+              isLoading
+                ? "bg-[#252525] text-gray-500 cursor-not-allowed opacity-60"
+                : "bg-[#303030] hover:bg-[#404040] text-gray-200"
+            }`}
           >
-            Enviar
+            {isLoading ? "Processando..." : "Enviar"}
           </button>
         </div>
       </div>

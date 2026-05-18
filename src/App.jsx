@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Input from "./components/Input";
 import Message from "./components/Message";
 import TypingIndicator from "./components/TypingIndicator";
@@ -9,6 +9,7 @@ function App() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [deveRolar, setDeveRolar] = useState(false);
   const [arquivosDisponiveis, setArquivosDisponiveis] = useState(["Todos"]);
   const [arquivoSelecionado, setArquivoSelecionado] = useState(() => {
     return localStorage.getItem("ultimoPdfConsultado") || "Todos";
@@ -24,11 +25,22 @@ function App() {
     "Onde vejo a classificação final?",
   ];
 
-  const API_URL = "https://api-chatbot-oebg.onrender.com";
+  const bottomRef = useRef(null);
+
+  //http://127.0.0.1:8000
+  //https://api-chatbot-oebg.onrender.com
+  const API_URL = "http://127.0.0.1:8000";
 
   useEffect(() => {
     localStorage.setItem("ultimoPdfConsultado", arquivoSelecionado);
   }, [arquivoSelecionado]);
+
+  useEffect(() => {
+    if (deveRolar) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      setDeveRolar(false);
+    }
+  }, [chatHistory, deveRolar]);
 
   const excluirArquivoNoBanco = async (nomeArquivo) => {
     if (
@@ -82,29 +94,33 @@ function App() {
     files.forEach((file) => formData.append("arquivos", file));
 
     setIsLoading(true);
-    await treinarAPI(formData);
-    await carregarArquivos();
-    setIsLoading(false);
+
+    try {
+      const data = await treinarAPI(formData);
+
+      alert(data.mensagem || "Arquivo treinado com sucesso!");
+      await carregarArquivos();
+    } catch (error) {
+      alert(error.message || "Erro ao treinar arquivo");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const treinarAPI = async (formData) => {
     console.log("dentro de api");
 
-    try {
-      const response = await fetch(`${API_URL}/treinar`, {
-        method: "POST",
-        body: formData,
-      });
+    const response = await fetch(`${API_URL}/treinar`, {
+      method: "POST",
+      body: formData,
+    });
 
-      const data = await response.json();
-      if (response.ok) {
-        console.log("Tudo certo");
-      } else {
-        console.log(`Erro dentro de try: ${JSON.stringify(data.detail)} `);
-      }
-    } catch (e) {
-      console.error(`Erro: ${e}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || "Erro ao treinar arquivo");
     }
+
+    return data;
   };
 
   const respostaAPI = async (pergunta, arquivoSelecionado) => {
@@ -125,18 +141,19 @@ function App() {
       const data = await response.json();
 
       if (response.ok) {
-        return data.resposta;
+        return data;
       } else {
-        return "Erro reposta";
+        return { resposta: "Erro reposta", fontes: [] };
       }
     } catch (e) {
-      return `Erro: ${e}`;
+      return { resposta: `Erro: ${e}`, fontes: [] };
     }
   };
 
   const addNewMessage = async (userText, selectedFiles) => {
     const newUserMsg = { role: "user", text: userText };
     setChatHistory((prev) => [...prev, newUserMsg]);
+    setDeveRolar(true);
 
     setIsLoading(true);
 
@@ -156,11 +173,15 @@ function App() {
       setArquivoSelecionado(arquivoAlvoPergunta);
     }
 
-    const reposta = await respostaAPI(userText, arquivoAlvoPergunta);
+    const resposta = await respostaAPI(userText, arquivoAlvoPergunta);
 
     setIsLoading(false);
 
-    const botReply = { role: "bot", text: `${reposta}` };
+    const botReply = {
+      role: "bot",
+      text: resposta.resposta,
+      fontes: resposta.fontes || [],
+    };
     setChatHistory((prev) => [...prev, botReply]);
   };
 
@@ -169,7 +190,7 @@ function App() {
       <header className="flex items-center gap-2.5 px-4 py-3 bg-[#131314] border-b border-[#303030] w-full z-10 shrink-0">
         <button
           onClick={() => setIsSidebarOpen(true)}
-          className="p-2 text-sm bg-[#212121] hover:bg-[#303030] roudned-lg text-white transition-colors"
+          className="p-2 text-sm bg-[#212121] hover:bg-[#303030] rounded-lg text-white transition-colors"
           title="Mostrar todos os arquivos"
         >
           ☰ Arquivos
@@ -190,7 +211,12 @@ function App() {
       <div className="flex-1 overflow-y-auto p-4 w-full max-w-4xl mx-auto flex flex-col">
         {chatHistory.map((msg, index) => (
           <div key={index}>
-            <Message role={msg.role} text={msg.text} />
+            <Message
+              role={msg.role}
+              text={msg.text}
+              fontes={msg.fontes}
+              API_URL={API_URL}
+            />
 
             {index === 0 && msg.role === "bot" && chatHistory.length === 1 && (
               <div className="flex flex-wrap gap-2 -mt-2 mb-4 ml-2">
@@ -209,6 +235,8 @@ function App() {
         ))}
 
         {isLoading && <TypingIndicator />}
+
+        <div ref={bottomRef} />
       </div>
 
       <div className="w-full p-4 pb-7 bg-transparent shadow-lg shadow-olive-500">
@@ -218,6 +246,7 @@ function App() {
           arquivoSelecionado={arquivoSelecionado}
           setArquivoSelecionado={setArquivoSelecionado}
           sugestoesPerguntas={sugestoesPerguntas}
+          isLoading={isLoading}
         />
         <p className="text-center text-xs text-gray-400 mt-3">
           O Gemini pode apresentar informações imprecisas. Considere verificar
