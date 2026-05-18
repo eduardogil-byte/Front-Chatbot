@@ -4,13 +4,36 @@ import Message from "./components/Message";
 import TypingIndicator from "./components/TypingIndicator";
 import Sidebar from "./components/Sidebar";
 function App() {
-  const [chatHistory, setChatHistory] = useState([
-    { role: "bot", text: "Olá como posso te ajudar hoje?" },
-  ]);
+  const MENSAGEM_INICIAL = {
+    role: "bot",
+    text: "Olá como posso te ajudar hoje?",
+  };
+
+  const LIMITE_MENSAGENS = 20;
+
+  const [chatHistory, setChatHistory] = useState(() => {
+    const historicoSalvo = localStorage.getItem("chatHistory");
+
+    if (historicoSalvo) {
+      try {
+        const historico = JSON.parse(historicoSalvo);
+
+        if (Array.isArray(historico) && historico.length > 0) {
+          return historico;
+        }
+      } catch (e) {
+        console.error("Erro ao carregar histórico:", e);
+      }
+    }
+
+    return [MENSAGEM_INICIAL];
+  });
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [deveRolar, setDeveRolar] = useState(false);
   const [arquivosDisponiveis, setArquivosDisponiveis] = useState(["Todos"]);
+  const [arquivosCarregados, setArquivosCarregados] = useState(false);
   const [arquivoSelecionado, setArquivoSelecionado] = useState(() => {
     return localStorage.getItem("ultimoPdfConsultado") || "Todos";
   });
@@ -32,8 +55,10 @@ function App() {
   const API_URL = "http://127.0.0.1:8000";
 
   useEffect(() => {
+    if (!arquivosCarregados) return;
+
     localStorage.setItem("ultimoPdfConsultado", arquivoSelecionado);
-  }, [arquivoSelecionado]);
+  }, [arquivoSelecionado, arquivosCarregados]);
 
   useEffect(() => {
     if (deveRolar) {
@@ -73,9 +98,17 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/arquivos`);
       const data = await response.json();
-      setArquivosDisponiveis(["Todos", ...data.arquivos]);
+      const lista = ["Todos", ...data.arquivos];
+
+      setArquivosDisponiveis(lista);
+      setArquivosCarregados(true);
+
+      return lista;
     } catch (e) {
       console.error("Erro ao buscar arquivos: ", e);
+      setArquivosCarregados(true);
+
+      return ["Todos"];
     }
   };
 
@@ -84,10 +117,13 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!arquivosCarregados) return;
+
     if (!arquivosDisponiveis.includes(arquivoSelecionado)) {
       setArquivoSelecionado("Todos");
+      localStorage.setItem("ultimoPdfConsultado", "Todos");
     }
-  }, [arquivosDisponiveis, arquivoSelecionado]);
+  }, [arquivosCarregados, arquivosDisponiveis, arquivoSelecionado]);
 
   const handleTreinarPelaSidebar = async (files) => {
     const formData = new FormData();

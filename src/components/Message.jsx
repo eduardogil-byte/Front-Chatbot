@@ -41,7 +41,10 @@ function Message({ role, text, fontes = [], API_URL }) {
                 rel="noopener noreferrer"
                 className="text-xs bg-[#242424] hover:bg-[#333333] text-blue-300 border border-[#404040] px-3 py-1.5 rounded-full transition-colors"
               >
-                📄 {fonte.arquivo} — pág. {fonte.pagina}
+                📄 {fonte.arquivo}
+                {fonte.paginas?.length > 0 && (
+                  <span> — págs. {fonte.paginas.join(", ")}</span>
+                )}
               </a>
             ))}
           </div>
